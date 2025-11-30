@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>How AI Sees + Digit Prediction</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+<style>
+  body { font-family: sans-serif; text-align: center; background: #f4f4f4; }
+  h2 { margin-bottom: 5px; }
+  #drawArea { border: 2px solid black; background: white; touch-action: none; }
+  .row { display: flex; flex-wrap: wrap; justify-content: center; }
+  .block { margin: 10px; }
+  canvas { border: 1px solid #ccc; }
+  button { padding: 10px 20px; margin: 12px; font-size: 16px; }
+  #prediction { font-size: 28px; margin-top: 10px; }
+</style>
+</head>
+
+<body>
+
+<h2>Draw a digit (0–9)</h2>
+<p>Then tap “Process + Predict Digit”.</p>
+
+<canvas id="drawArea" width="300" height="300"></canvas><br>
+<button id="clearBtn">Clear</button>
+<button id="processBtn">Process + Predict Digit</button>
+
+<div id="prediction">AI thinks this is: <b>?</b></div>
+
+<div class="row">
+  <div class="block">
+    <h3>Edges</h3>
+    <canvas id="edge" width="300" height="300"></canvas>
+  </div>
+  <div class="block">
+    <h3>Pixelated</h3>
+    <canvas id="pixel" width="300" height="300"></canvas>
+  </div>
+  <div class="block">
+    <h3>RGB (Red Channel)</h3>
+    <canvas id="rgb" width="300" height="300"></canvas>
+  </div>
+</div>
+
+<script>
+// ===== Drawing =====
+const canvas = document.getElementById("drawArea");
+const ctx = canvas.getContext("2d");
+ctx.lineWidth = 20;
+ctx.lineCap = "round";
+
+let drawing = false;
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+  const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+  return { x, y };
+}
+
+function start(e) {
+  drawing = true;
+  const pos = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+}
+
+function draw(e) {
+  if (!drawing) return;
+  const pos = getPos(e);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+}
+
+function end() { drawing = false; }
+
+canvas.addEventListener("mousedown", start);
+canvas.addEventListener("mousemove", draw);
+canvas.addEventListener("mouseup", end);
+
+canvas.addEventListener("touchstart", start);
+canvas.addEventListener("touchmove", draw);
+canvas.addEventListener("touchend", end);
+
+document.getElementById("clearBtn").onclick = () =>
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+// ===== AI Model (MNIST) =====
+let model;
+async function loadModel() {
+  model = await tf.loadLayersModel(
+    "https://storage.googleapis.com/tfjs-models/tfjs/mnist/model.json"
+  );
+}
+loadModel();
+
+// ===== PROCESS + PREDICT =====
+document.getElementById("processBtn").onclick = asy
