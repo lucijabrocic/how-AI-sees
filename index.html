@@ -1,98 +1,159 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>How AI Sees + Digit Prediction</title>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+<meta charset="UTF-8" />
+<title>How AI Sees — Draw Demo</title>
 <style>
-  body { font-family: sans-serif; text-align: center; background: #f4f4f4; }
-  h2 { margin-bottom: 5px; }
-  #drawArea { border: 2px solid black; background: white; touch-action: none; }
-  .row { display: flex; flex-wrap: wrap; justify-content: center; }
-  .block { margin: 10px; }
-  canvas { border: 1px solid #ccc; }
-  button { padding: 10px 20px; margin: 12px; font-size: 16px; }
-  #prediction { font-size: 28px; margin-top: 10px; }
+  body { font-family: sans-serif; text-align: center; background: #f7f7f7; }
+  h1 { font-size: 22px; }
+  canvas { background: white; border: 2px solid black; touch-action: none; }
+  .btns button { margin: 6px; padding: 10px 14px; font-size: 15px; }
+  img { margin: 8px; border: 1px solid #ddd; }
 </style>
 </head>
-
 <body>
 
-<h2>Draw a digit (0–9)</h2>
-<p>Then tap “Process + Predict Digit”.</p>
+<h1>🧠 How AI Sees Your Drawing</h1>
+<p>Draw a number (0–9) with your finger:</p>
 
-<canvas id="drawArea" width="300" height="300"></canvas><br>
-<button id="clearBtn">Clear</button>
-<button id="processBtn">Process + Predict Digit</button>
+<canvas id="draw" width="280" height="280"></canvas>
 
-<div id="prediction">AI thinks this is: <b>?</b></div>
-
-<div class="row">
-  <div class="block">
-    <h3>Edges</h3>
-    <canvas id="edge" width="300" height="300"></canvas>
-  </div>
-  <div class="block">
-    <h3>Pixelated</h3>
-    <canvas id="pixel" width="300" height="300"></canvas>
-  </div>
-  <div class="block">
-    <h3>RGB (Red Channel)</h3>
-    <canvas id="rgb" width="300" height="300"></canvas>
-  </div>
+<div class="btns">
+  <button onclick="clearCanvas()">Clear</button>
+  <button onclick="pixelate()">Pixelate</button>
+  <button onclick="showRGB()">RGB Channels</button>
+  <button onclick="predictDigit()">AI Guess</button>
 </div>
 
+<h3>Output:</h3>
+<div id="output"></div>
+
 <script>
-// ===== Drawing =====
-const canvas = document.getElementById("drawArea");
+// ---- Drawing ----
+const canvas = document.getElementById("draw");
 const ctx = canvas.getContext("2d");
-ctx.lineWidth = 20;
+ctx.lineWidth = 18;
 ctx.lineCap = "round";
-
+ctx.strokeStyle = "black";
 let drawing = false;
-
-function getPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-  const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-  return { x, y };
-}
 
 function start(e) {
   drawing = true;
-  const pos = getPos(e);
   ctx.beginPath();
-  ctx.moveTo(pos.x, pos.y);
+  ctx.moveTo(getX(e), getY(e));
 }
-
+function end() { drawing = false; }
 function draw(e) {
   if (!drawing) return;
-  const pos = getPos(e);
-  ctx.lineTo(pos.x, pos.y);
+  ctx.lineTo(getX(e), getY(e));
   ctx.stroke();
 }
 
-function end() { drawing = false; }
+function getX(e) { return e.touches ? e.touches[0].clientX - canvas.offsetLeft : e.offsetX; }
+function getY(e) { return e.touches ? e.touches[0].clientY - canvas.offsetTop : e.offsetY; }
 
 canvas.addEventListener("mousedown", start);
-canvas.addEventListener("mousemove", draw);
 canvas.addEventListener("mouseup", end);
-
+canvas.addEventListener("mousemove", draw);
 canvas.addEventListener("touchstart", start);
-canvas.addEventListener("touchmove", draw);
 canvas.addEventListener("touchend", end);
+canvas.addEventListener("touchmove", draw);
 
-document.getElementById("clearBtn").onclick = () =>
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+// ---- Utilities ----
+function clearCanvas() {
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  document.getElementById("output").innerHTML = "";
+}
+clearCanvas(); // init white background
 
-// ===== AI Model (MNIST) =====
-let model;
-async function loadModel() {
-  model = await tf.loadLayersModel(
-    "https://storage.googleapis.com/tfjs-models/tfjs/mnist/model.json"
+function getImage() {
+  return canvas.toDataURL("image/png");
+}
+
+// ---- Pixelate ----
+function pixelate() {
+  let off = document.createElement("canvas");
+  off.width = off.height = 28;
+  let octx = off.getContext("2d");
+  octx.drawImage(canvas, 0, 0, 28, 28);
+
+  let big = document.createElement("canvas");
+  big.width = big.height = 280;
+  let bctx = big.getContext("2d");
+  bctx.imageSmoothingEnabled = false;
+  bctx.drawImage(off, 0, 0, 28, 28, 0, 0, 280, 280);
+
+  document.getElementById("output").innerHTML =
+    "<p><b>Pixelated (28×28):</b></p>";
+  document.getElementById("output").appendChild(big);
+}
+
+// ---- RGB Channels ----
+function showRGB() {
+  const img = ctx.getImageData(0, 0, 280, 280);
+  const { width, height, data } = img;
+
+  function channelCanvas(filter) {
+    let c = document.createElement("canvas");
+    c.width = width; c.height = height;
+    let cx = c.getContext("2d");
+    let d = cx.createImageData(width, height);
+
+    for (let i = 0; i < data.length; i += 4) {
+      d.data[i]   = filter === "r" ? data[i]   : 0;
+      d.data[i+1] = filter === "g" ? data[i+1] : 0;
+      d.data[i+2] = filter === "b" ? data[i+2] : 0;
+      d.data[i+3] = 255;
+    }
+    cx.putImageData(d, 0, 0);
+    return c;
+  }
+
+  document.getElementById("output").innerHTML = `
+    <p><b>RGB Channels:</b></p>
+    <p>Red, Green, Blue</p>
+  `;
+  ["r","g","b"].forEach(ch =>
+    document.getElementById("output").appendChild(channelCanvas(ch))
   );
 }
-loadModel();
 
-// ===== PROCESS + PREDICT =====
-document.getElementById("processBtn").onclick = asy
+// ---- Fake AI Digit Prediction ----
+// We shrink the drawing to 28×28 and compare average brightness
+function predictDigit() {
+  let mini = document.createElement("canvas");
+  mini.width = mini.height = 28;
+  mini.getContext("2d").drawImage(canvas, 0, 0, 28, 28);
+
+  let img = mini.getContext("2d").getImageData(0, 0, 28, 28);
+  let data = img.data;
+
+  // crude "feature": center of mass + stroke amount
+  let sumX = 0, sumY = 0, count = 0;
+  for (let y = 0; y < 28; y++) {
+    for (let x = 0; x < 28; x++) {
+      let i = (y*28 + x)*4;
+      let v = 255 - data[i]; // invert: dark stroke = high value
+      if (v > 40) { sumX += x; sumY += y; count++; }
+    }
+  }
+
+  let cx = sumX / count;
+  let cy = sumY / count;
+
+  // dumb heuristic — enough to feel "AI-ish"
+  let guess = "?";
+  if (count < 40) guess = "1";           // thin
+  else if (cy < 10) guess = "7";         // high strokes
+  else if (cx < 10) guess = "0";         // left-heavy
+  else if (cx > 18) guess = "3";         // right-heavy
+  else guess = "8";                      // dense center
+
+  document.getElementById("output").innerHTML =
+    `<h2>🤖 AI thinks this is: <b>${guess}</b></h2>`;
+}
+</script>
+
+</body>
+</html>
