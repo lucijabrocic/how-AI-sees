@@ -1,109 +1,16 @@
 <!DOCTYPE html>
 <html lang="hr">
+
+
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prepoznavanje Znamenki - AI</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  
-  body { 
-    font-family: 'Segoe UI', Tahoma, sans-serif;
-    text-align: center;
-    background: linear-gradient(135deg, #0044cc 0%, #2f2483 100%);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  
-  .container {
-    background: white;
-    border-radius: 20px;
-    padding: 40px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    max-width: 500px;
-  }
-  
-  h1 { 
-    font-size: 28px;
-    color: #111827;
-    margin-bottom: 10px;
-  }
-  
-  p {
-    color: #4b5563;
-    margin-bottom: 25px;
-    font-size: 16px;
-  }
-  
-  canvas {
-    background: white;
-    border: 3px solid #2f2483;
-    border-radius: 10px;
-    touch-action: none;
-    cursor: crosshair;
-    margin-bottom: 20px;
-  }
-  
-  .btns {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-    margin-bottom: 25px;
-  }
-  
-  .btns button { 
-    padding: 12px 30px;
-    font-size: 16px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.3s;
-  }
-  
-  .btns button:first-child {
-    background: #e0e0e0;
-    color: #111827;
-  }
-  
-  .btns button:last-child {
-    background: linear-gradient(135deg, #0044cc 0%, #2f2483 100%);
-    color: white;
-  }
-  
-  .btns button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  }
-  
-  .btns button:active {
-    transform: translateY(0);
-  }
-  
-  #result {
-    font-size: 20px;
-    color: #2f2483;
-    font-weight: 600;
-    padding: 20px;
-    background: #e5f0ff;
-    border-radius: 10px;
-    min-height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  @media (max-width: 600px) {
-    .container { padding: 20px; }
-    h1 { font-size: 22px; }
-    canvas { width: 100%; height: auto; }
-    .btns { flex-direction: column; }
-    .btns button { width: 100%; }
-  }
-</style>
+<title> 🤖 AI prepoznaje znamenke</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI prepoznaje znamenke</title>
+    <link rel="stylesheet" href="style.css">
 
 <!-- TensorFlow.js -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
@@ -112,7 +19,16 @@
 <body>
 
 <div class="container">
-  <h1>🧠 Prepoznavanje Znamenki</h1>
+   <header>
+        <img src="pmf_logo.png" alt="Logo PMF" class="logo">
+        <div class="header-text">
+            <p>SVEUČILIŠTE U SPLITU</p>
+            <p>Prirodoslovno-matematički fakultet</p>
+            <p>Odjel za informatiku</p>
+        </div>
+      </header>
+  <h1>🤖 AI prepoznaje znamenke</h1>
+  <p>Model: <a href="https://github.com/maneprajakta/Digit_Recognition_Web_App" target="_blank">@maneprajakta</a></p>
   <p>Nacrtaj broj (0–9) u polju ispod:</p>
 
   <canvas id="draw" width="280" height="280"></canvas>
@@ -123,6 +39,7 @@
   </div>
 
   <div id="result">Model se učitava...</div>
+  <div id="confidence"></div>
 </div>
 
 <script>
@@ -179,7 +96,8 @@ canvas.addEventListener("touchmove", draw);
 function clearCanvas() {
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  document.getElementById("result").innerHTML = "Nacrtaj znamenku...";
+  document.getElementById("result").innerHTML = "🤖&nbsp; Nacrtaj znamenku...";
+  document.getElementById("confidence").innerHTML = "";
 }
 clearCanvas();
 
@@ -187,12 +105,18 @@ clearCanvas();
 let model;
 
 async function loadModel() {
-  document.getElementById("result").innerText = "Učitavam AI model...";
-  model = await tf.loadLayersModel(
-    "https://storage.googleapis.com/tfjs-models/tfjs/mnist_tfjs/model.json"
-  );
-  document.getElementById("result").innerHTML = "✅ Model spreman!";
+  try {
+    document.getElementById("result").innerText = "Učitavam AI model...";
+    model = await tf.loadLayersModel(
+      "https://raw.githubusercontent.com/maneprajakta/Digit_Recognition_Web_App/refs/heads/master/models/model.json"
+    );
+    document.getElementById("result").innerHTML = "✅ Model spreman! Nacrtaj znamenku...";
+  } catch (error) {
+    console.error("Greška pri učitavanju modela:", error);
+    document.getElementById("result").innerHTML = "❌ Greška: Model se nije mogao učitati. Provjeri internet konekciju.";
+  }
 }
+
 loadModel();
 
 // ----------------- AI PREDVIĐANJE -----------------
@@ -219,25 +143,32 @@ function preprocessImage() {
 
 async function predictDigit() {
   if (!model) {
-    document.getElementById("result").innerHTML = "⏳ Model se još učitava...";
+    document.getElementById("result").innerHTML = "⏳ Model se još učitava... Čekaj malo.";
     return;
   }
 
-  const input = preprocessImage();
-  const pred = model.predict(input);
-  const probs = await pred.data();
+  try {
+    const input = preprocessImage();
+    const pred = model.predict(input);
+    const probs = await pred.data();
 
-  let best = 0;
-  for (let i = 1; i < probs.length; i++) {
-    if (probs[i] > probs[best]) best = i;
+    let best = 0;
+    for (let i = 1; i < probs.length; i++) {
+      if (probs[i] > probs[best]) best = i;
+    }
+
+    document.getElementById("result").innerHTML =
+      `🤖&nbsp;Mislim da je to znamenka: &nbsp; <span style="font-size:28px;color:#2f2483">${best}</span>`;
+      document.getElementById("confidence").innerHTML =
+      `<span style="font-size:16px;color:#4b5563">Sigurnost: ${(probs[best] * 100).toFixed(1)}%</span>`;
+
+    // Oslobodi memoriju
+    input.dispose();
+    pred.dispose();
+  } catch (error) {
+    console.error("Greška pri predviđanju:", error);
+    document.getElementById("result").innerHTML = "❌ Greška pri predviđanju. Pokušaj ponovo.";
   }
-
-  document.getElementById("result").innerHTML =
-    `🤖 <b>Predviđanje:</b> <span style="font-size:28px;color:#2f2483">${best}</span><br>
-    <span style="font-size:16px;color:#4b5563">Sigurnost: ${(probs[best] * 100).toFixed(1)}%</span>`;
-
-  input.dispose();
-  pred.dispose();
 }
 </script>
 
