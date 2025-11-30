@@ -10,7 +10,7 @@
   body { 
     font-family: 'Segoe UI', Tahoma, sans-serif;
     text-align: center;
-    background: linear-gradient(135deg, #0044cc 0%, #00008B 100%);
+    background: linear-gradient(135deg, #0044cc 0%, #2f2483 100%);
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -40,7 +40,7 @@
   
   canvas {
     background: white;
-    border: 3px solid #00008B;
+    border: 3px solid #2f2483;
     border-radius: 10px;
     touch-action: none;
     cursor: crosshair;
@@ -70,7 +70,7 @@
   }
   
   .btns button:last-child {
-    background: linear-gradient(135deg, #0044cc 0%, #00008B 100%);
+    background: linear-gradient(135deg, #0044cc 0%, #2f2483 100%);
     color: white;
   }
   
@@ -85,7 +85,7 @@
   
   #result {
     font-size: 20px;
-    color: #00008B;
+    color: #2f2483;
     font-weight: 600;
     padding: 20px;
     background: #e5f0ff;
@@ -233,7 +233,7 @@ async function predictDigit() {
   }
 
   document.getElementById("result").innerHTML =
-    `🤖 <b>Predviđanje:</b> <span style="font-size:28px;color:#00008B">${best}</span><br>
+    `🤖 <b>Predviđanje:</b> <span style="font-size:28px;color:#2f2483">${best}</span><br>
     <span style="font-size:16px;color:#4b5563">Sigurnost: ${(probs[best] * 100).toFixed(1)}%</span>`;
 
   input.dispose();
